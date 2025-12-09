@@ -16,6 +16,6 @@ jobs:
     - name: make_dir
       run: mkdir -p build
     - name: cmake_build
-      run: cd build && ./cmake ..
+      run: cd build && cmake ..
     - name: make
       run: make
