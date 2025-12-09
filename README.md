@@ -1,15 +1,30 @@
 # Request Organizer
 
-A Qt6-based request organizer application similar to Burp Suite's organizer.
+Open source HTTP/s request organizer and collector. 
+You can save your API REST/SOAP/XMLRPC/GRAPHQL requests per project and 
+keep it clean an separated between logic flows.
+
 
 ## Features
 
 - Organize requests in a hierarchical folder structure
-- Create folders and organize requests by folders
-- Set colors for request items (not folders)
-- Add annotations to all items and folders
-- Collapsible/expandable folders
-- Table view with small fonts for compact display
+- Visualize Request and Responses like in Burp Suite
+- Compatible with Burp Suite 
+- Import requests using cURL and XML
+- Add and view screenshots on each request.
+
+## TODO
+
+- HTTP Fuzzer (Intruder like)
+- Toggle raw view and prettify view on XML and JSON body contents
+- Preview responses in embedded webview/custom chromium
+- Export requests as cURL, ffuf, wfuzz, python requests, python aiohttp, C libcurl, etc
+
+## Dependencies
+
+- QT6
+- Clang/GNU C
+- Cmake
 
 ## Building
 
@@ -26,11 +41,14 @@ make
 - Qt6 (Core and Widgets components)
 - C++17 compatible compiler
 
-## Usage
+## Contribute
 
-- **Add Folder**: Click "Add Folder" button or right-click and select "Add Folder"
-- **Add Request**: Click "Add Request" button or right-click and select "Add Request"
-- **Set Color**: Select a request item and click "Set Color" (folders cannot have colors)
-- **Edit Annotation**: Select an item and click "Edit Annotation"
-- **Delete**: Select an item and click "Delete"
-- **Rename**: Double-click on the name column to edit
+I don't need feauture contribution, but feel free to PR and open an issue
+expalining why your feature is a good idea.
+Keep it simple, don't add bloatware libraries, try to stick to the stdlib
+qt and any well maintained framework/library that is cross-platform
+
+## Bug report
+
+Open an issue, I won't fix it right away but will look into it when
+got some spare time.
