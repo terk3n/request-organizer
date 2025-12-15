@@ -1,0 +1,160 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Get version from tag
+        id: get_version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "version=v0.0.0-dev" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.version }}
+          release_name: Release ${{ steps.get_version.outputs.version }}
+          draft: false
+          prerelease: false
+
+  build-linux:
+    needs: create-release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Qt6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qt6-base-dev libqt6sql6 libqt6sql6-sqlite
+      
+      - name: Configure CMake
+        run: |
+          mkdir -p build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+      
+      - name: Build
+        run: |
+          cd build
+          make
+      
+      - name: Package
+        run: |
+          mkdir -p release/RequestOrganizer-linux
+          cp build/RequestOrganizer release/RequestOrganizer-linux/
+          cd release
+          tar -czf RequestOrganizer-linux-x64.tar.gz RequestOrganizer-linux/
+      
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./release/RequestOrganizer-linux-x64.tar.gz
+          asset_name: RequestOrganizer-linux-x64.tar.gz
+          asset_content_type: application/gzip
+
+  build-macos:
+    needs: create-release
+    runs-on: macos-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Qt6
+        run: |
+          brew install qt@6
+          echo "$(brew --prefix qt@6)/bin" >> $GITHUB_PATH
+          echo "Qt6_DIR=$(brew --prefix qt@6)/lib/cmake/Qt6" >> $GITHUB_ENV
+      
+      - name: Configure CMake
+        run: |
+          mkdir -p build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$(brew --prefix qt@6)
+      
+      - name: Build
+        run: |
+          cd build
+          make
+      
+      - name: Package
+        run: |
+          mkdir -p release/RequestOrganizer-macos
+          cp build/RequestOrganizer release/RequestOrganizer-macos/
+          cd release
+          zip -r RequestOrganizer-macos-x64.zip RequestOrganizer-macos/
+      
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./release/RequestOrganizer-macos-x64.zip
+          asset_name: RequestOrganizer-macos-x64.zip
+          asset_content_type: application/zip
+
+  build-windows:
+    needs: create-release
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.5.0'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2019_64'
+          modules: 'qtsql'
+      
+      - name: Configure CMake
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+      
+      - name: Build
+        run: |
+          cd build
+          cmake --build . --config Release
+      
+      - name: Package
+        run: |
+          mkdir release
+          mkdir release\RequestOrganizer-windows
+          copy build\Release\RequestOrganizer.exe release\RequestOrganizer-windows\
+          cd release
+          powershell Compress-Archive -Path RequestOrganizer-windows -DestinationPath RequestOrganizer-windows-x64.zip
+      
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./release/RequestOrganizer-windows-x64.zip
+          asset_name: RequestOrganizer-windows-x64.zip
+          asset_content_type: application/zip
